@@ -14,13 +14,13 @@ st.set_page_config(
 st.title("Échantillonner pour compter c'est tout un art 🐠")
 st.info("""
 **On veut comprendre comment on peut déterminer la proportion d'un caractère parmi d'autres, 
-en étant sûr à 95 % et avec un seul échantillon, pris une seule fois.**
+en étant sûr à 95 % et avec **une seule campagne de mesures** ou **échantillonnage.**
 """)
 
 st.divider()
 
 # --- PRÉSENTATION DU DOCUMENT ---
-st.markdown("### Deux phénotypes de l'épervier strié (*Paracirrhites arcatus*)")
+st.markdown("### ACTIVITÉ 1 : Deux phénotypes de l'épervier strié (*Paracirrhites arcatus*)")
 st.write("""
 *L'épervier strié est un poisson qui vit dans les récifs coralliens. Il existe sous deux phénotypes : 
 sombre et clair. Un recensement des formes claires et sombres a été effectué le long de 
@@ -143,7 +143,7 @@ col_sup, col_prof = st.columns(2)
 # --- ZONE SUPERFICIELLE ---
 with col_sup:
     st.markdown("### 🟦 Eaux superficielles")
-    st.write(f"Proportion réelle de sombres : **{prop_sombres_superficiel*100:.1f}%**")
+    st.write(f"On cherche la proportion de formes sombres🐟 / claires 🐠")
     
     if st.button("🎣 Capturer 5 poissons", key="btn_superficiel", type="primary"):
         nb_sombres = np.random.binomial(5, prop_sombres_superficiel)
@@ -197,7 +197,7 @@ with col_sup:
 # --- ZONE PROFONDE ---
 with col_prof:
     st.markdown("### 🔵 Eaux profondes")
-    st.write(f"Proportion réelle de sombres : **{prop_sombres_profond*100:.1f}%**")
+    st.write(f"On cherche la proportion de formes sombres 🐟/claires 🐠")
     
     if st.button("🎣 Capturer 5 poissons", key="btn_profond", type="primary"):
         nb_sombres = np.random.binomial(5, prop_sombres_profond)
@@ -260,11 +260,11 @@ if st.session_state.echantillons_superficiel or st.session_state.echantillons_pr
     st.subheader("📈 Graphique de confiance : Je suis toujours sûr à 95% mais avec un prix à payer 💰")
     
     st.warning("""
-    **Seule question à se poser quand on observe le graphique :**
+    **La question à se poser quand on observe le graphique :**
     
-    Quelles sont les fréquences de poissons 🐟 sombres / 🐠 clairs, à la surface et en profondeur... 
+    Les fréquencess de poissons 🐟 sombres / 🐠 clairs, à la surface et en profondeur sont-elles différentes ? 
     
-    **Et surtout : EN SUIS-JE CERTAIN ? 🤔**
+    **Et surtout : EN SUIS-JE CERTAIN.E ? 🤔**
     """)
     
     import plotly.graph_objects as go
@@ -435,7 +435,7 @@ if st.session_state.echantillons_superficiel or st.session_state.echantillons_pr
 st.divider()
 
 # --- CALCUL DE L'INTERVALLE DE CONFIANCE ---
-st.subheader("📐 Calcul de l'intervalle de confiance à 95%")
+st.subheader("📐 ACTIVITÉ 2 Calcul de l'intervalle de confiance à 95%")
 
 st.write("""
 Imaginons maintenant qu'on ne connaît pas la vraie proportion dans la population, 
