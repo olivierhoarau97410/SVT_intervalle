@@ -86,7 +86,7 @@ draw.rectangle([0, img_height//2, img_width, img_height], fill='#1E3A8A')
 draw.line([0, img_height//2, img_width, img_height//2], fill='white', width=3)
 
 # Dessiner un bateau à la surface
-boat_x, boat_y = img_width - 120, 20
+boat_x, boat_y = img_width - 150, -15
 # Coque du bateau (triangle inversé)
 draw.polygon([(boat_x, boat_y+20), (boat_x+60, boat_y+20), (boat_x+50, boat_y+35), (boat_x+10, boat_y+35)], fill='#8B4513')
 # Cabine
@@ -123,7 +123,6 @@ for i in range(4):
 
 st.image(img, caption="Vue du lagon - Eaux superficielles (haut) et eaux profondes (bas)", use_container_width=True)
 
-st.write("🟦 **Zone superficielle (< 5 m)** en haut - 🔵 **Zone profonde (> 5 m)** en bas")
 
 # Instructions pédagogiques
 st.info("""
