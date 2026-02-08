@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageDraw
 import random
-from scipy import stats
-import plotly.graph_objects as go
 
 # Configuration responsive
 st.set_page_config(
@@ -64,6 +62,13 @@ if 'net_position_sup' not in st.session_state:
     st.session_state.net_position_sup = (150, 80)
 if 'net_position_prof' not in st.session_state:
     st.session_state.net_position_prof = (150, 280)
+
+# Données réelles
+data = {
+    "Zone": ["Eaux superficielles (< 5 m)", "Eaux profondes (> 5 m)"],
+    "Sombres": [538, 20],
+    "Clairs": [310, 238]
+}
 
 # Proportions réelles (ajustées pour la pédagogie)
 prop_sombres_superficiel = 0.55  # 55% de sombres en surface
@@ -257,10 +262,12 @@ if st.session_state.echantillons_superficiel or st.session_state.echantillons_pr
     st.warning("""
     **La question à se poser quand on observe le graphique :**
     
-    Les fréquences de poissons 🐟 sombres / 🐠 clairs, à la surface et en profondeur sont-elles différentes ? 
+    Les fréquencess de poissons 🐟 sombres / 🐠 clairs, à la surface et en profondeur sont-elles différentes ? 
     
     **Et surtout : EN SUIS-JE CERTAIN.E ? 🤔**
     """)
+    
+    import plotly.graph_objects as go
     
     fig = go.Figure()
     
@@ -285,8 +292,11 @@ if st.session_state.echantillons_superficiel or st.session_state.echantillons_pr
         f_values_sup = []
         
         for i in range(len(df_sup)):
+            # Calculer n cumulé (nombre total de poissons capturés jusqu'ici)
             n_total = (i + 1) * 5
+            # Calculer f moyen sur tous les échantillons jusqu'ici
             f_moyen = df_sup.loc[:i, 'freq_sombres'].mean()
+            # Calculer IC avec n cumulé
             marge = 1.96 * np.sqrt((f_moyen * (1 - f_moyen)) / n_total)
             
             n_cumul_sup.append(n_total)
@@ -421,22 +431,133 @@ if st.session_state.echantillons_superficiel or st.session_state.echantillons_pr
         - 🔒 Continuez à échantillonner pour découvrir les vraies proportions (60+ captures nécessaires)
         """)
 
+
 st.divider()
 
-# --- ACTIVITÉ 2 : GRAPHIQUE EN CLOCHE ---
-st.subheader("💡 ACTIVITÉ 2 : Comprendre l'influence de la taille de l'échantillon")
+# --- CALCUL DE L'INTERVALLE DE CONFIANCE ---
+st.subheader("📐 ACTIVITÉ 2 Calcul de l'intervalle de confiance à 95%")
+
+st.write("""
+Imaginons maintenant qu'on ne connaît pas la vraie proportion dans la population, 
+et qu'on n'a fait qu'**un seul** prélèvement de 50 poissons. 
+Comment peut-on estimer la proportion réelle avec 95% de confiance ?
+""")
+
+# Choisir quelle zone analyser
+zone_calcul = st.radio(
+    "Sur quelle zone voulez-vous calculer l'intervalle de confiance ?",
+    ["Eaux superficielles", "Eaux profondes"],
+    horizontal=True
+)
+
+if zone_calcul == "Eaux superficielles":
+    echantillons_zone = st.session_state.echantillons_superficiel
+    prop_reelle = prop_sombres_superficiel
+    couleur_zone = "🟦"
+else:
+    echantillons_zone = st.session_state.echantillons_profond
+    prop_reelle = prop_sombres_profond
+    couleur_zone = "🔵"
+
+if echantillons_zone:
+    # Utiliser le premier échantillon pour le calcul
+    echantillon = echantillons_zone[0]
+    n = 5
+    f = echantillon['freq_sombres']
+    
+    st.write(f"{couleur_zone} **Utilisons le premier échantillon de {zone_calcul.lower()} : {echantillon['sombres']} sombres / 5 poissons**")
+    st.write(f"**Fréquence observée f = {f:.3f}**")
+    
+    # Formule
+    st.write("**Formule de l'intervalle de confiance à 95% :**")
+    st.latex(r"IC_{95\%} = \left[ f - 1,96 \sqrt{\frac{f(1-f)}{n}} \ ; \ f + 1,96 \sqrt{\frac{f(1-f)}{n}} \right]")
+    
+    # Calcul
+    marge = 1.96 * np.sqrt((f * (1 - f)) / n)
+    ic_min = f - marge
+    ic_max = f + marge
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Taille échantillon (n)", n)
+        st.metric("Fréquence observée (f)", f"{f:.3f}")
+        st.metric("Marge d'erreur", f"± {marge:.3f}")
+    
+    with col2:
+        st.write("**📊 Résultat de l'estimation :**")
+        st.success(f"La vraie proportion p est comprise entre **{ic_min:.3f}** et **{ic_max:.3f}** avec 95% de confiance")
+        st.write(f"Soit entre **{ic_min*100:.1f}%** et **{ic_max*100:.1f}%**")
+        
+        # Vérification
+        if ic_min <= prop_reelle <= ic_max:
+            st.success("✅ L'intervalle contient bien la vraie valeur !")
+        else:
+            st.warning("⚠️ L'intervalle ne contient pas la vraie valeur (ça arrive dans 5% des cas)")
+    
+else:
+    st.info(f"👆 Capturez au moins un échantillon dans les {zone_calcul.lower()} pour calculer l'intervalle de confiance")
+
+st.divider()
+
+# --- DONNÉES RÉELLES DE L'ÉTUDE ---
+st.subheader("📊 Données réelles de l'étude scientifique")
+
+st.write("""
+Les chercheurs ont fait un recensement complet sur 54 transects. 
+Voici les données réelles :
+""")
+
+df_data = pd.DataFrame({
+    "Zone": ["Eaux superficielles (< 5 m)", "Eaux profondes (> 5 m)"],
+    "Sombres": [550, 450],
+    "Clairs": [450, 550]
+})
+
+st.dataframe(df_data, use_container_width=True)
+
+# Calculs sur les vraies données
+st.write("### Calcul avec les données complètes")
+
+zone_analyse = st.selectbox("Analyser quelle zone ?", df_data["Zone"].tolist())
+
+if zone_analyse == "Eaux superficielles (< 5 m)":
+    sombres = 550
+    clairs = 450
+else:
+    sombres = 450
+    clairs = 550
+
+n_total = sombres + clairs
+f_total = sombres / n_total
+
+marge_total = 1.96 * np.sqrt((f_total * (1 - f_total)) / n_total)
+ic_min_total = f_total - marge_total
+ic_max_total = f_total + marge_total
+
+col1, col2 = st.columns(2)
+with col1:
+    st.metric("Taille de l'échantillon (n)", n_total)
+    st.metric("Fréquence observée (f)", f"{f_total:.3f}")
+
+with col2:
+    st.write("**Intervalle de confiance à 95% :**")
+    st.success(f"Entre **{ic_min_total:.3f}** et **{ic_max_total:.3f}**")
+    st.write(f"Soit entre **{ic_min_total*100:.1f}%** et **{ic_max_total*100:.1f}%**")
+
+st.divider()
+
+# --- INTERACTIVITÉ SUR LA TAILLE DE L'ÉCHANTILLON ---
+st.subheader("💡 Comprendre l'influence de la taille de l'échantillon")
 
 st.write("""
 La précision de notre estimation dépend de la taille de l'échantillon. 
-Plus n est grand, plus notre intervalle de confiance est étroit (= plus précis).
-
-**Déplacez le curseur pour voir comment la courbe en cloche se resserre quand l'effectif augmente !**
+Plus n est grand, plus notre intervalle est étroit (= plus précis).
 """)
 
 n_simu = st.slider(
-    "🎚️ Taille de l'échantillon (n) :", 
+    "Modifiez la taille de l'échantillon (n) pour voir l'effet sur la précision :", 
     min_value=5, 
-    max_value=500, 
+    max_value=2000, 
     value=5,
     step=5
 )
@@ -448,243 +569,26 @@ if st.session_state.echantillons_superficiel:
 elif st.session_state.echantillons_profond:
     f_simu = st.session_state.echantillons_profond[0]['freq_sombres']
 
-# Calculer l'intervalle de confiance
 marge_simu = 1.96 * np.sqrt((f_simu * (1 - f_simu)) / n_simu)
-ic_min_simu = max(0, f_simu - marge_simu)
-ic_max_simu = min(1, f_simu + marge_simu)
-amplitude = ic_max_simu - ic_min_simu
+amplitude = marge_simu * 2
 
-# Créer la courbe en cloche (distribution normale)
-# Générer les points pour la courbe normale
-x_values = np.linspace(0, 1, 1000)
-# Écart-type de la distribution
-std_dev = np.sqrt((f_simu * (1 - f_simu)) / n_simu)
-# Fonction de densité normale
-y_values = stats.norm.pdf(x_values, f_simu, std_dev)
+st.metric("Amplitude de l'intervalle de confiance", f"{amplitude*100:.2f}%")
 
-# Normaliser pour que le pic soit à 1
-y_values = y_values / y_values.max()
-
-fig_cloche = go.Figure()
-
-# Tracer la courbe en cloche complète (en gris clair avec remplissage)
-fig_cloche.add_trace(go.Scatter(
-    x=x_values,
-    y=y_values,
-    mode='lines',
-    line=dict(color='#888888', width=3),
-    name='Distribution',
-    fill='tozeroy',
-    fillcolor='rgba(200, 200, 200, 0.3)',
-    showlegend=True
-))
-
-# Ajouter une ligne verticale pour la fréquence observée (ligne rouge pointillée)
-fig_cloche.add_trace(go.Scatter(
-    x=[f_simu, f_simu],
-    y=[0, 1],
-    mode='lines',
-    line=dict(color='red', width=3, dash='dash'),
-    name=f'f observée = {f_simu:.2f}',
-    showlegend=True
-))
-
-# Position verticale pour la ligne d'intervalle (20% de la hauteur max)
-y_ligne_ic = 0.2
-
-# LIGNE HORIZONTALE BORNÉE pour l'intervalle de confiance à 95%
-fig_cloche.add_trace(go.Scatter(
-    x=[ic_min_simu, ic_max_simu],
-    y=[y_ligne_ic, y_ligne_ic],
-    mode='lines+markers',
-    line=dict(color='#4169E1', width=4),
-    marker=dict(size=12, symbol='line-ns', line=dict(width=3, color='#4169E1')),
-    name='IC 95%',
-    showlegend=True,
-    hovertemplate='IC 95%: [%{x:.3f}]<extra></extra>'
-))
-
-# Annotations pour les limites de l'IC avec flèches
-fig_cloche.add_annotation(
-    x=ic_min_simu,
-    y=y_ligne_ic,
-    text=f"<b>{ic_min_simu:.3f}</b>",
-    showarrow=True,
-    arrowhead=2,
-    arrowcolor="#4169E1",
-    ax=0,
-    ay=-50,
-    font=dict(size=13, color="#4169E1", family="Arial Black"),
-    bgcolor="white",
-    bordercolor="#4169E1",
-    borderwidth=2
-)
-
-fig_cloche.add_annotation(
-    x=ic_max_simu,
-    y=y_ligne_ic,
-    text=f"<b>{ic_max_simu:.3f}</b>",
-    showarrow=True,
-    arrowhead=2,
-    arrowcolor="#4169E1",
-    ax=0,
-    ay=-50,
-    font=dict(size=13, color="#4169E1", family="Arial Black"),
-    bgcolor="white",
-    bordercolor="#4169E1",
-    borderwidth=2
-)
-
-# Annotation pour indiquer "Intervalle de confiance 95%"
-fig_cloche.add_annotation(
-    x=(ic_min_simu + ic_max_simu) / 2,
-    y=y_ligne_ic,
-    text="<b>IC 95%</b>",
-    showarrow=False,
-    yshift=20,
-    font=dict(size=14, color="#4169E1", family="Arial Black"),
-    bgcolor="rgba(255,255,255,0.8)",
-    bordercolor="#4169E1",
-    borderwidth=2
-)
-
-fig_cloche.update_layout(
-    title=f"Distribution de probabilité de la fréquence (n={n_simu})",
-    xaxis_title="Fréquence de poissons sombres",
-    yaxis_title="Densité de probabilité (normalisée)",
-    yaxis=dict(range=[0, 1.1]),
-    xaxis=dict(range=[0, 1]),
-    height=450,
-    showlegend=True,
-    hovermode='x'
-)
-
-st.plotly_chart(fig_cloche, use_container_width=True)
-
-# Afficher les métriques
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Taille échantillon (n)", n_simu)
-with col2:
-    st.metric("Amplitude IC 95%", f"{amplitude*100:.1f}%")
-with col3:
-    precision = "Haute 🎯" if amplitude < 0.1 else "Moyenne 📊" if amplitude < 0.3 else "Faible 📉"
-    st.metric("Précision", precision)
-
-if n_simu < 50:
-    st.warning("⚠️ **Effectif faible** : La courbe est très étalée et basse, l'intervalle est large. L'estimation est **peu précise**.")
-elif n_simu < 200:
-    st.info("📊 **Effectif moyen** : La courbe se resserre et monte, l'intervalle est plus étroit. L'estimation est **moyennement précise**.")
+if n_simu > 5:
+    st.success("✅ **Plus n est grand**, plus l'intervalle est petit : l'estimation est **plus précise**.")
+elif n_simu < 5:
+    st.warning("⚠️ **Plus n est petit**, plus l'intervalle est large : l'estimation est **moins précise**.")
 else:
-    st.success("✅ **Effectif élevé** : La courbe est très resserrée et haute, l'intervalle est étroit. L'estimation est **très précise** !")
-
-st.info("""
-**💡 Observation clé** : 
-- Avec un **petit n** → courbe **large et basse** → grande incertitude 📉
-- Avec un **grand n** → courbe **étroite et haute** → faible incertitude 🎯
-- Le pic est toujours à la fréquence observée, mais la **certitude augmente** avec n !
-""")
-
-st.divider()
-
-# --- QUIZ INTERACTIF ---
-st.subheader("🎯 Quiz : Avez-vous bien compris ?")
-
-st.write("Répondez à ces 3 questions pour débloquer les points clés à retenir ! 🎈")
-
-# Initialiser le score dans session state
-if 'quiz_score' not in st.session_state:
-    st.session_state.quiz_score = 0
-if 'quiz_reponses' not in st.session_state:
-    st.session_state.quiz_reponses = [None, None, None]
-if 'quiz_submitted' not in st.session_state:
-    st.session_state.quiz_submitted = [False, False, False]
-
-# Question 1
-st.markdown("### Question 1 : Que représente la zone bleue sur le graphique en cloche ?")
-q1_options = [
-    "La probabilité que la fréquence observée soit exacte",
-    "L'intervalle de confiance à 95% où se trouve la vraie fréquence",
-    "La marge d'erreur maximale possible",
-    "La zone où on est sûr à 100% de trouver la vraie valeur"
-]
-q1_reponse = st.radio("", q1_options, key="q1", index=None)
-
-if q1_reponse and not st.session_state.quiz_submitted[0]:
-    if q1_reponse == q1_options[1]:  # Bonne réponse
-        st.success("✅ Bravo ! La zone bleue représente bien l'intervalle de confiance à 95%.")
-        st.session_state.quiz_reponses[0] = True
-        st.session_state.quiz_submitted[0] = True
-    else:
-        st.error("❌ Pas tout à fait... Rejouez avec le curseur et observez comment la zone bleue évolue !")
-        st.session_state.quiz_reponses[0] = False
-
-# Question 2
-st.markdown("### Question 2 : Que se passe-t-il quand on augmente la taille de l'échantillon (n) ?")
-q2_options = [
-    "La courbe s'élargit et descend",
-    "La courbe se resserre et monte",
-    "La fréquence observée change",
-    "L'intervalle de confiance reste identique"
-]
-q2_reponse = st.radio("", q2_options, key="q2", index=None)
-
-if q2_reponse and not st.session_state.quiz_submitted[1]:
-    if q2_reponse == q2_options[1]:  # Bonne réponse
-        st.success("✅ Exact ! Plus n augmente, plus la courbe se resserre (devient étroite) et monte.")
-        st.session_state.quiz_reponses[1] = True
-        st.session_state.quiz_submitted[1] = True
-    else:
-        st.error("❌ Essayez de déplacer le curseur de gauche à droite et observez bien ce qui se passe !")
-        st.session_state.quiz_reponses[1] = False
-
-# Question 3
-st.markdown("### Question 3 : Avec un échantillon de n=5 poissons, quelle est la précision de notre estimation ?")
-q3_options = [
-    "Très précise, on peut être certain de la vraie fréquence",
-    "Moyennement précise, l'intervalle est assez étroit",
-    "Peu précise, l'intervalle est très large",
-    "Impossible à déterminer sans faire plus de captures"
-]
-q3_reponse = st.radio("", q3_options, key="q3", index=None)
-
-if q3_reponse and not st.session_state.quiz_submitted[2]:
-    if q3_reponse == q3_options[2]:  # Bonne réponse
-        st.success("✅ Parfait ! Avec n=5, l'intervalle est énorme (très large), donc peu précis.")
-        st.session_state.quiz_reponses[2] = True
-        st.session_state.quiz_submitted[2] = True
-    else:
-        st.error("❌ Remettez le curseur à n=5 et regardez la largeur de la zone bleue...")
-        st.session_state.quiz_reponses[2] = False
-
-# Vérifier si toutes les réponses sont correctes
-if all(st.session_state.quiz_reponses) and all(st.session_state.quiz_submitted):
-    st.balloons()
-    st.success("🎉🎈 BRAVO ! Vous avez tout compris ! Les points clés sont maintenant débloqués ci-dessous ! 🎈🎉")
-
-# Bouton pour réinitialiser le quiz
-if st.button("🔄 Réessayer le quiz"):
-    st.session_state.quiz_score = 0
-    st.session_state.quiz_reponses = [None, None, None]
-    st.session_state.quiz_submitted = [False, False, False]
-    st.rerun()
+    st.info("ℹ️ Avec n=5, l'intervalle est très large. Il faudrait un échantillon plus grand pour plus de précision.")
 
 # --- CONCLUSION PÉDAGOGIQUE ---
 st.divider()
+st.subheader("🎯 Conclusion")
 
-# Afficher la conclusion seulement si le quiz est réussi
-if all(st.session_state.quiz_reponses) and all(st.session_state.quiz_submitted):
-    st.subheader("🎯 Points clés à retenir (débloqués ! 🔓)")
-    
-    st.success("""
-    **Points clés à retenir :**
-    1. Un échantillon permet d'estimer une proportion dans une population
-    2. L'intervalle de confiance à 95% nous donne une marge d'erreur
-    3. Plus l'échantillon est grand (n ↑), plus l'estimation est précise (courbe se resserre)
-    4. Avec un seul échantillon, on peut avoir 95% de confiance dans notre estimation
-    5. Le "prix à payer" 💰 : il faut capturer beaucoup de poissons pour être très précis !
-    """)
-else:
-    st.subheader("🎯 Points clés à retenir")
-    st.warning("🔒 **Répondez correctement aux 3 questions du quiz pour débloquer les points clés !**")
-
+st.success("""
+**Points clés à retenir :**
+1. Un échantillon permet d'estimer une proportion dans une population
+2. L'intervalle de confiance à 95% nous donne une marge d'erreur
+3. Plus l'échantillon est grand, plus l'estimation est précise
+4. Avec un seul échantillon, on peut avoir 95% de confiance dans notre estimation
+""")
