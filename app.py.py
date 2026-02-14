@@ -571,16 +571,16 @@ with col3:
     st.metric("Précision", precision)
 
 if n_simu < 50:
-    st.warning("⚠️ **Effectif faible** : La courbe est très étalée et basse, l'intervalle est large. L'estimation est **peu précise**.")
+    st.warning("⚠️ **Effectif faible** : La courbe est très étalée, l'intervalle est large. L'estimation est **peu précise**.")
 elif n_simu < 200:
-    st.info("📊 **Effectif moyen** : La courbe se resserre et monte, l'intervalle est plus étroit. L'estimation est **moyennement précise**.")
+    st.info("📊 **Effectif moyen** : La courbe se resserre, l'intervalle est plus étroit. L'estimation est **moyennement précise**.")
 else:
-    st.success("✅ **Effectif élevé** : La courbe est très resserrée et haute, l'intervalle est étroit. L'estimation est **très précise** !")
+    st.success("✅ **Effectif élevé** : La courbe est très resserrée, l'intervalle est étroit. L'estimation est **très précise** !")
 
 st.info("""
 **💡 Observation clé** : 
-- Avec un **petit n** → courbe **large et basse** → grande incertitude 📉
-- Avec un **grand n** → courbe **étroite et haute** → faible incertitude 🎯
+- Avec un **petit n** → courbe **large** → grande incertitude 📉
+- Avec un **grand n** → courbe **étroite** → faible incertitude 🎯
 - Le pic est toujours à la fréquence observée, mais la **certitude augmente** avec n !
 """)
 
@@ -621,8 +621,8 @@ if q1_reponse and not st.session_state.quiz_submitted[0]:
 # Question 2
 st.markdown("### Question 2 : Que se passe-t-il quand on augmente la taille de l'échantillon (n) ?")
 q2_options = [
-    "La courbe s'élargit et descend",
-    "La courbe se resserre et monte",
+    "La courbe s'élargit",
+    "La courbe se resserre",
     "La fréquence observée change",
     "L'intervalle de confiance reste identique"
 ]
@@ -630,7 +630,7 @@ q2_reponse = st.radio("", q2_options, key="q2", index=None)
 
 if q2_reponse and not st.session_state.quiz_submitted[1]:
     if q2_reponse == q2_options[1]:  # Bonne réponse
-        st.success("✅ Exact ! Plus n augmente, plus la courbe se resserre (devient étroite) et monte.")
+        st.success("✅ Exact ! Plus n augmente, plus la courbe se resserre (devient étroite).")
         st.session_state.quiz_reponses[1] = True
         st.session_state.quiz_submitted[1] = True
     else:
@@ -680,10 +680,9 @@ if all(st.session_state.quiz_reponses) and all(st.session_state.quiz_submitted):
     1. Un échantillon permet d'estimer une proportion dans une population
     2. L'intervalle de confiance à 95% nous donne une marge d'erreur
     3. Plus l'échantillon est grand (n ↑), plus l'estimation est précise (courbe se resserre)
-    4. Avec un seul échantillon, on peut avoir 95% de confiance dans notre estimation
+    4. Avec un seul échantillon, on peut avoir 95% de confiance dans notre estimation mais TOUJOURS avec une marge d'erreur +/- grande
     5. Le "prix à payer" 💰 : il faut capturer beaucoup de poissons pour être très précis !
     """)
 else:
     st.subheader("🎯 Points clés à retenir")
     st.warning("🔒 **Répondez correctement aux 3 questions du quiz pour débloquer les points clés !**")
-
